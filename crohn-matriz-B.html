@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matriz cruzada de ensayos — Enfermedad de Crohn</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --panel:#fffdf8; --ink:#1f2a30; --muted:#6f6a60;
+    --line:#ddd7cb; --line-strong:#c9c2b4;
+    --direct:#0f766e; --direct-ink:#ffffff; --direct-soft:#d7ece9;
+    --indirect-bg:#ece8df; --indirect-ink:#9c958a;
+    --horizon-bg:#fbe7cf; --horizon-ink:#b45309; --horizon-line:#eab676;
+    --diag:#cfc9bd;
+    --shadow:0 1px 2px rgba(31,42,48,.06),0 8px 24px rgba(31,42,48,.07);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.5}
+  .wrap{max-width:920px;margin:0 auto;padding:28px 18px 56px}
+  .topbar{height:4px;background:linear-gradient(90deg,var(--direct),#0ea5a0 60%,var(--horizon-ink));border-radius:4px;margin-bottom:22px}
+  h1{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
+    font-weight:600;font-size:clamp(22px,4.5vw,30px);letter-spacing:.2px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 20px;max-width:62ch}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .legend{display:flex;flex-wrap:wrap;gap:14px 22px;padding:14px 16px;margin-bottom:18px;font-size:13px}
+  .legend .it{display:flex;align-items:center;gap:8px}
+  .sw{width:16px;height:16px;border-radius:4px;flex:none;border:1px solid rgba(0,0,0,.08)}
+  .sw.d{background:var(--direct)} .sw.i{background:var(--indirect-bg)}
+  .sw.h{background:var(--horizon-bg);border-color:var(--horizon-line)} .sw.x{background:var(--diag)}
+  .matrix-scroll{overflow-x:auto;padding:8px 8px 4px;-webkit-overflow-scrolling:touch}
+  table.mx{border-collapse:separate;border-spacing:0;margin:0 auto}
+  table.mx th,table.mx td{font-size:11px;text-align:center}
+  .corner{position:sticky;left:0;z-index:3;background:var(--panel)}
+  th.colh{padding:6px 2px;color:var(--muted);font-weight:600;min-width:34px}
+  th.rowh{position:sticky;left:0;z-index:2;background:var(--panel);color:var(--ink);
+    font-weight:600;text-align:right;padding:0 10px 0 4px;white-space:nowrap}
+  td.cell{width:36px;height:36px;border:1px solid var(--line);position:relative}
+  td.diag{background:repeating-linear-gradient(45deg,var(--diag),var(--diag) 4px,#d9d3c7 4px,#d9d3c7 8px)}
+  td.ind{background:var(--indirect-bg)}
+  td.ind .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--indirect-ink)}
+  td.hor{background:var(--horizon-bg);color:var(--horizon-ink);border-color:var(--horizon-line);font-weight:700}
+  td.dir{background:var(--direct);color:var(--direct-ink);font-weight:700;cursor:pointer;
+    letter-spacing:.3px;transition:transform .08s ease, box-shadow .12s ease}
+  td.dir:hover{transform:scale(1.06);box-shadow:0 4px 12px rgba(15,118,110,.4);z-index:1}
+  td.dir.sel{outline:3px solid #042f2c;outline-offset:-1px}
+  .hint{color:var(--muted);font-size:12.5px;text-align:center;margin:8px 2px 0}
+  .detail{margin:18px 0 0;padding:18px 18px;min-height:96px}
+  .detail .ph{color:var(--muted);font-size:14px}
+  .detail .badge{display:inline-block;background:var(--direct-soft);color:#0b4a45;
+    font-size:11px;font-weight:700;letter-spacing:.4px;padding:3px 9px;border-radius:999px;text-transform:uppercase}
+  .detail h3{font-family:Georgia,serif;font-size:19px;margin:10px 0 2px;font-weight:600}
+  .detail .vs{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .detail .grid{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+  .detail .k{color:var(--muted)}
+  .detail .verdict{margin-top:12px;font-weight:600;color:var(--direct)}
+  h2{font-family:Georgia,serif;font-weight:600;font-size:18px;margin:30px 0 12px}
+  table.dt{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  table.dt th,table.dt td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  table.dt th{background:#efebe1;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:#4a463d}
+  table.dt tr:last-child td{border-bottom:0}
+  table.dt td.win{font-weight:600;color:var(--direct);white-space:nowrap}
+  .foot{color:var(--muted);font-size:12px;margin-top:26px;text-align:center}
+  @media(max-width:520px){ td.cell{width:32px;height:32px} th.colh{min-width:30px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"></div>
+  <h1>Matriz cruzada de ensayos — Enfermedad de Crohn</h1>
+  <p class="sub">Comparaciones fármaco × fármaco entre biológicos y upadacitinib. Solo existen cuatro comparaciones <em>directas</em> (head-to-head) y todas pasan por ustekinumab. Toca o pasa el cursor por una celda verde para ver el resultado.</p>
+
+  <div class="card legend">
+    <div class="it"><span class="sw d"></span> Directa (head-to-head) — con resultado</div>
+    <div class="it"><span class="sw i"></span> Indirecta (vía placebo / red)</div>
+    <div class="it"><span class="sw h"></span> Horizonte anti-TL1A (en curso)</div>
+    <div class="it"><span class="sw x"></span> Mismo fármaco</div>
+  </div>
+
+  <div class="card">
+    <div class="matrix-scroll"><div id="mx"></div></div>
+    <p class="hint">Las celdas verdes son interactivas. El resto es evidencia indirecta o ensayos en curso sin datos.</p>
+  </div>
+
+  <div class="card detail" id="detail">
+    <div class="ph">Selecciona una celda verde (SEAVUE, SEQUENCE, GALAXI o VIVID-1) para ver la comparación directa.</div>
+  </div>
+
+  <h2>Las cuatro comparaciones directas</h2>
+  <table class="dt">
+    <thead><tr><th>Ensayo</th><th>Comparación</th><th>Población</th><th>Endpoint clave</th><th>Resultado</th><th>Veredicto</th></tr></thead>
+    <tbody>
+      <tr><td>SEAVUE</td><td>Ustekinumab vs Adalimumab</td><td>Naïve a biológico</td><td>Remisión clínica sem 52</td><td>65% vs 61% (p=0,42)</td><td class="win">Empate</td></tr>
+      <tr><td>SEQUENCE</td><td>Risankizumab vs Ustekinumab</td><td>Fallo a anti-TNF</td><td>Remisión clínica sem 24 / endoscópica sem 48</td><td>No inferior (58,6% vs 39,5%) y superior en remisión endoscópica</td><td class="win">Gana risankizumab</td></tr>
+      <tr><td>GALAXI-2/3</td><td>Guselkumab vs Ustekinumab</td><td>Mixta</td><td>Endpoints endoscópicos sem 48</td><td>Guselkumab superior en endoscopia; sin superioridad clínica</td><td class="win">Gana guselkumab (endosc.)</td></tr>
+      <tr><td>VIVID-1</td><td>Mirikizumab vs Ustekinumab</td><td>Mixta</td><td>Remisión clínica sem 52</td><td>No inferior; superioridad no alcanzada (p=0,113)</td><td class="win">No inferior</td></tr>
+    </tbody>
+  </table>
+
+  <p class="foot">Parte del documento «Biológicos y molécula pequeña en la Enfermedad de Crohn — tablas A y B» (v1.3). Cifras verificadas contra la publicación primaria.</p>
+</div>
+
+<script>
+  const drugs = [
+    {c:"IFX",n:"Infliximab"},{c:"ADA",n:"Adalimumab"},{c:"CZP",n:"Certolizumab"},
+    {c:"VDZ",n:"Vedolizumab"},{c:"NAT",n:"Natalizumab"},{c:"UST",n:"Ustekinumab"},
+    {c:"RZB",n:"Risankizumab"},{c:"GUS",n:"Guselkumab"},{c:"MIR",n:"Mirikizumab"},
+    {c:"UPA",n:"Upadacitinib"},{c:"TUL",n:"Tulisokibart"},{c:"DUV",n:"Duvakitug"},{c:"AFI",n:"Afimkibart"}
+  ];
+  const horizon = new Set(["TUL","DUV","AFI"]);
+  const key = (a,b)=>[a,b].sort().join("|");
+  const direct = {
+    [key("ADA","UST")]:{tag:"SEAVUE",label:"SEAVUE",vs:"Ustekinumab vs Adalimumab",
+      pop:"Naïve a biológico",end:"Remisión clínica sem 52",res:"65% vs 61% (p=0,42)",verdict:"Empate"},
+    [key("RZB","UST")]:{tag:"SEQ",label:"SEQUENCE",vs:"Risankizumab vs Ustekinumab",
+      pop:"Fallo a anti-TNF",end:"Remisión clínica sem 24 / endoscópica sem 48",
+      res:"No inferior en remisión clínica (58,6% vs 39,5%) y superior en remisión endoscópica sem 48",verdict:"Gana risankizumab"},
+    [key("GUS","UST")]:{tag:"GAL",label:"GALAXI-2/3",vs:"Guselkumab vs Ustekinumab",
+      pop:"Mixta",end:"Endpoints endoscópicos sem 48",
+      res:"Guselkumab superior en respuesta y remisión endoscópica sem 48; sin superioridad clínica",verdict:"Gana guselkumab (endoscopia)"},
+    [key("MIR","UST")]:{tag:"VIV",label:"VIVID-1",vs:"Mirikizumab vs Ustekinumab",
+      pop:"Mixta",end:"Remisión clínica sem 52",
+      res:"Mirikizumab no inferior; superioridad no alcanzada (p=0,113)",verdict:"No inferior"}
+  };
+
+  let selected = null;
+  const detail = document.getElementById("detail");
+
+  function renderDetail(k){
+    const d = direct[k];
+    if(!d){ return; }
+    detail.innerHTML =
+      '<span class="badge">Comparación directa</span>'+
+      '<h3>'+d.label+'</h3>'+
+      '<p class="vs">'+d.vs+'</p>'+
+      '<div class="grid">'+
+        '<div class="k">Población</div><div>'+d.pop+'</div>'+
+        '<div class="k">Endpoint</div><div>'+d.end+'</div>'+
+        '<div class="k">Resultado</div><div>'+d.res+'</div>'+
+      '</div>'+
+      '<div class="verdict">'+d.verdict+'</div>';
+  }
+  function placeholder(){
+    detail.innerHTML = '<div class="ph">Selecciona una celda verde (SEAVUE, SEQUENCE, GALAXI o VIVID-1) para ver la comparación directa.</div>';
+  }
+
+  // build matrix
+  const root = document.getElementById("mx");
+  const tbl = document.createElement("table"); tbl.className="mx";
+  const thead = document.createElement("thead");
+  const htr = document.createElement("tr");
+  const corner = document.createElement("th"); corner.className="corner"; htr.appendChild(corner);
+  drugs.forEach(d=>{ const th=document.createElement("th"); th.className="colh"; th.textContent=d.c; htr.appendChild(th); });
+  thead.appendChild(htr); tbl.appendChild(thead);
+  const tbody = document.createElement("tbody");
+
+  drugs.forEach(row=>{
+    const tr = document.createElement("tr");
+    const rh = document.createElement("th"); rh.className="rowh"; rh.textContent=row.c; tr.appendChild(rh);
+    drugs.forEach(col=>{
+      const td = document.createElement("td"); td.className="cell";
+      if(row.c===col.c){ td.classList.add("diag"); }
+      else if(horizon.has(row.c)||horizon.has(col.c)){ td.classList.add("hor"); td.textContent="○"; td.title="Anti-TL1A en curso (sin datos)"; }
+      else {
+        const k = key(row.c,col.c); const d = direct[k];
+        if(d){ td.classList.add("dir"); td.textContent=d.tag; td.dataset.k=k;
+          td.title=d.label+" — "+d.verdict;
+          td.addEventListener("click",()=>{ select(k,td); });
+          td.addEventListener("mouseenter",()=>{ if(window.matchMedia("(hover:hover)").matches){ renderDetail(k);} });
+          td.addEventListener("mouseleave",()=>{ if(window.matchMedia("(hover:hover)").matches){ if(selected) renderDetail(selected); else placeholder(); } });
+        } else { td.classList.add("ind"); const s=document.createElement("span"); s.className="dot"; td.appendChild(s); td.title="Evidencia indirecta (vía placebo / metaanálisis en red)"; }
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody); root.appendChild(tbl);
+
+  function select(k,td){
+    document.querySelectorAll("td.dir.sel").forEach(e=>e.classList.remove("sel"));
+    if(selected===k){ selected=null; placeholder(); return; }
+    selected=k; td.classList.add("sel"); renderDetail(k);
+  }
+</script>
+</body>
+</html>
